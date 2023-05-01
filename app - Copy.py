@@ -33,6 +33,7 @@ def generate_html_download_link(fig):
 
 
 st.set_page_config(page_title='TP project')
+st.title('TP SKU calculation engine 📈')
 
 
 with st.sidebar:
@@ -49,7 +50,6 @@ if 'df' not in st.session_state:
 
 
 if selected == "Upload and view Data":
-    st.title('TP SKU calculation engine 📈')
     
     st.subheader('Please upload the Excel file')
     uploaded_file = st.file_uploader("Choose a XLSX file with column names of 'Item', 'Quarter', 'COGS', 'OP Expemses'. If you don't have a file, you can click the button to use the mock data"
@@ -72,7 +72,7 @@ if selected == "Upload and view Data":
     if use_mock:
         df = pd.read_excel('data/Cleaned_Data_for_Engine.xlsx', engine='openpyxl')
         st.session_state.df = df
-        st.markdown('Below is the mock data')
+        st.markdown('Use mock data')
         
     if not st.session_state.df.empty:
         df = st.session_state.df
@@ -101,54 +101,40 @@ if selected == "Upload and view Data":
             )
         st.plotly_chart(fig)
 
-        st.subheader('Downloads:')
-        generate_excel_download_link(df)
-        
-        generate_html_download_link(fig)
-
-
         # -- DOWNLOAD SECTION
+        st.subheader('Downloads:')
+        generate_excel_download_link(df_grouped)
+        generate_html_download_link(fig)
 
 
 
 if selected == "TP adjustments":
-
-    st.title('TP SKU calculation engine 📈')
     st.subheader('View adjustments')
     #df = st.session_state["updated_df"]
     #st.dataframe(df)
-    if not st.session_state.df.empty:
-        df = st.session_state.df
-        st.markdown('Your uploaded file')
-        st.dataframe(df)
-        method = st.selectbox(
+    
+    method = st.selectbox(
         "How would you like to be calculated?",
-        ("TopDown Approach", "Bottom_up approach"),)
-        calculate_button = st.button("Click here to caltulate!")
+        ("TopDown Approach", "Buttom_up approach"),
+    )
+    calculate_button = st.button("Click here to caltulate!")
         #st.write(clean_button)
-        if calculate_button:
-            st.write("Data calculatedd...")
-            st.subheader('Downloads:')
-            generate_excel_download_link(df)
-
-    else:
-        st.markdown('Please go to the previous tab to upload a file first')
-
+    if calculate_button:
+        st.write("Data calculatedd...")
 
 
 if selected == "Machine learning for fun":
-    st.title('Simple ML profit prediction model')
-    st.subheader('Enter the data below to predict the gross profit of an SKU. This simple ML model is trained using the IPL_data')
+    st.subheader('Simple ML profit prediction model demo')
     
     qty_invoiced = st.slider('Quantity invoiced', 0, 10000, 500)
-    price = st.number_input('Pkease enter the price',step=0.0001)
+    price = st.number_input('Pkease enter the price', min_value=0, step=1)
     # no. of bedrooms in the house
-    extended_price = st.number_input('Extended Price',  step=0.0001)
-    ext_price_usd = st.number_input('Ext Price USD', step=0.0001)
-    custom_total_usd = st.number_input('Custom Total USD', step=0.0001)
+    extended_price = st.number_input('Extended Price', min_value=0, step=1)
+    ext_price_usd = st.number_input('Ext Price USD', min_value=0, step=1)
+    custom_total_usd = st.number_input('Custom Total USD', min_value=0, step=1)
     # how old is the house? (age)
-    unit_cost = st.number_input('unit cost?',step=0.0001)
-    ext_cost = st.number_input('ext cost?', step=0.0001)
+    unit_cost = st.number_input('unit cos?', min_value=0, step=1)
+    ext_cost = st.number_input('ext cos?', min_value=0, step=1)
      
     if st.button('Predict Gross Profit'):
         cost = predict(np.array([[qty_invoiced, price, extended_price, ext_price_usd,custom_total_usd,unit_cost,ext_cost]]))
