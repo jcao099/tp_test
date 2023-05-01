@@ -12,4 +12,5 @@ streamlit-toggle-switch==1.0.2
 streamlit-vertical-slider==1.0.2
 streamlit==1.22.0
 joblib==1.1.1
-
+sklearn.model_selection
+sklearn.linear_model
