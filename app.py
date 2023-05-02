@@ -320,7 +320,8 @@ if selected == "TP adjustments":
 
             st.subheader('Downloads:')
 
-            file_path='data/Output.xlsx'
+            #file_path='data/Output.xlsx'
+            file_path = "Data\\Output.xlsx"
             with open(file_path, 'rb') as my_file:
                 st.download_button(label = '📥 Download Current Result', data = my_file, file_name = 'filename.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             
