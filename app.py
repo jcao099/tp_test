@@ -12,9 +12,34 @@ from sklearn.linear_model import LinearRegression
 from predict_cost import predict
 import openpyxl
 
-#switch_page("New page name")
+from calculation import * 
+from algorithm import * 
+
+# Declare Variables   
+file_name="Data\\Cleaned_Data_for_Engine.xlsx"
+SKU_sheet_name="List of SKUs"
+F_DS_sheet_name="Distributor_P&L_Forecast"
+A_DS_sheet_name = "Distributor_Actual"
+F_MF_sheet_name="Manufacture_P&L Forecast"
+A_MF_sheet_name="Manufacture_Actual"
+extraordinary_cost=0 
+writer = pd.ExcelWriter("Data\\Output.xlsx", engine='openpyxl')
+
+
+
+
 #print(openpyxl.__version__)
 def generate_excel_download_link(df):
+    # Credit Excel: https://discuss.streamlit.io/t/how-to-add-a-download-excel-csv-function-to-a-button/4474/5
+    towrite = BytesIO()
+    #df.to_excel(towrite, encoding="utf-8", index=False, header=True)  # write to BytesIO buffer
+    df.to_excel(towrite, index=False, header=True)
+    towrite.seek(0)  # reset pointer
+    b64 = base64.b64encode(towrite.read()).decode()
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="data_download.xlsx">Download Excel File</a>'
+    return st.markdown(href, unsafe_allow_html=True)
+
+def download_from_output(df):
     # Credit Excel: https://discuss.streamlit.io/t/how-to-add-a-download-excel-csv-function-to-a-button/4474/5
     towrite = BytesIO()
     #df.to_excel(towrite, encoding="utf-8", index=False, header=True)  # write to BytesIO buffer
@@ -47,7 +72,16 @@ with st.sidebar:
 
 if 'df' not in st.session_state:
     st.session_state.df = pd.DataFrame()
-
+if 'sku' not in st.session_state:
+    st.session_state.sku = pd.DataFrame()
+if 'f_ds' not in st.session_state:
+    st.session_state.f_ds = pd.DataFrame()
+if 'f_mf' not in st.session_state:
+    st.session_state.f_mf = pd.DataFrame()
+if 'a_ds' not in st.session_state:
+    st.session_state.a_ds = pd.DataFrame()
+if 'a_fm' not in st.session_state:
+    st.session_state.a_fm = pd.DataFrame()
 
 
 if selected == "Upload and view Data":
@@ -62,7 +96,19 @@ if selected == "Upload and view Data":
     if uploaded_file:
         #st.markdown('---')
         df = pd.read_excel(uploaded_file, engine='openpyxl')
+        
+        SKU_list = pd.read_excel(uploaded_file, sheet_name = SKU_sheet_name)
+        F_DS_df = pd.read_excel(uploaded_file, sheet_name = F_DS_sheet_name)
+        F_MF_df=pd.read_excel(uploaded_file, sheet_name = F_MF_sheet_name)
+        A_DS_df=pd.read_excel(uploaded_file, sheet_name = A_DS_sheet_name)
+        A_MF_df=pd.read_excel(uploaded_file, sheet_name = A_MF_sheet_name)
+
         st.session_state.df = df
+        st.session_state.sku = SKU_list
+        st.session_state.f_ds = F_DS_df
+        st.session_state.f_mf = F_MF_df
+        st.session_state.a_ds = A_DS_df
+        st.session_state.a_fm =  A_MF_df
 
         # clean_button = st.button("Click here to clean the data!")
         # #st.write(clean_button)
@@ -72,8 +118,22 @@ if selected == "Upload and view Data":
         #     st.session_state.clean = True
 
     if use_mock:
-        df = pd.read_excel('data/Cleaned_Data_for_Engine.xlsx')
+        mock_dir = 'data/Cleaned_Data_for_Engine.xlsx'
+        df = pd.read_excel(mock_dir)
+        SKU_list = pd.read_excel(mock_dir, sheet_name = SKU_sheet_name)
+        F_DS_df = pd.read_excel(mock_dir, sheet_name = F_DS_sheet_name)
+        F_MF_df=pd.read_excel(mock_dir, sheet_name = F_MF_sheet_name)
+        A_DS_df=pd.read_excel(mock_dir, sheet_name = A_DS_sheet_name)
+        A_MF_df=pd.read_excel(mock_dir, sheet_name = A_MF_sheet_name)
+
         st.session_state.df = df
+        st.session_state.sku = SKU_list
+        st.session_state.f_ds = F_DS_df
+        st.session_state.f_mf = F_MF_df
+        st.session_state.a_ds = A_DS_df
+        st.session_state.a_fm =  A_MF_df
+
+        
         st.markdown('Below is the mock data')
         
     if not st.session_state.df.empty:
@@ -82,10 +142,12 @@ if selected == "Upload and view Data":
         st.markdown('---')
         st.dataframe(df)
 
+
         groupby_column = st.selectbox(
                 'What do you want to group by?',
                 ('Item', 'Quarter'),
             )
+
 
             # -- GROUP DATAFRAME
         output_columns = ['COGS', 'OP expenses']
@@ -121,6 +183,15 @@ if selected == "TP adjustments":
     #st.dataframe(df)
     if not st.session_state.df.empty:
         df = st.session_state.df
+        SKU_list = st.session_state.sku
+        F_DS_df = st.session_state.f_ds
+        F_MF_df = st.session_state.f_mf
+        A_DS_df = st.session_state.a_ds 
+        A_MF_df = st.session_state.a_fm
+        
+
+
+
         st.markdown('Your uploaded file')
         st.dataframe(df)
         method = st.selectbox(
@@ -129,9 +200,130 @@ if selected == "TP adjustments":
         calculate_button = st.button("Click here to caltulate!")
         #st.write(clean_button)
         if calculate_button:
+
+
+            F_DS_df = F_DS_df.rename(columns={"OP expenses":"OP_expenses"})
+            A_MF_df = A_MF_df.rename(columns={"Price_per_unit":"Price"})
+            A_MF_df = A_MF_df.rename(columns={"Quantity(Kpcs)":"Quantity"})
+
+            #df merge with policy
+            F_DS_Policy_df =  F_DS_df.merge(SKU_list, left_on='Item', right_on='SKU', how='left')
+
+            #Calculate sales, gp, op 
+            F_DS_Policy_df=calculate_sales_gp_op_fcost(F_DS_Policy_df ,'F','DS')
+            #print(F_DS_Policy_df)
+
+            #Calculate Quarterly Figures and Change all the namings with a total infornt 
+            F_DS_Quarter_Figures_df=calculate_quartery_figures(F_DS_Policy_df,'F','DS')
+
+            #Calculate the volume and SKU Level GP Margin and OP Margin 
+            F_DS_Final_df =  F_DS_Policy_df.merge(F_DS_Quarter_Figures_df, left_on='Quarter', right_on='Quarter', how='left')
+            F_DS_Final_df=calculate_volume_gpm_opm(F_DS_Final_df ,'F','DS')
+
+
+            #Sum everything by quarter
+            #Then join back with original table
+            #And calculate again 
+            # print(F_DS_Quarter_Figures_df)
+            # print(F_DS_Final_df)
+            F_DS_Final_df.to_excel(writer,
+                            sheet_name='DS_Forecast_Information')
+
+            ############################################################################################################
+            #For Actual 
+            #df merge with policy
+
+            A_DS_Policy_df =  A_DS_df.merge(SKU_list, left_on='Item', right_on='SKU', how='left')
+            #print(A_DS_Policy_df)
+            #
+            A_DS_Policy_df = calculate_sales_gp_op_fcost(A_DS_Policy_df ,'A','DS')
+
+            A_DS_Quarter_Figures_df=calculate_quartery_figures(A_DS_Policy_df,'A','DS')
+
+            #Until here is the same for forecast and actual #Can summarise into one function 
+            #Only for the concatenating quarter part is only for actual 
+
+            A_DS_Final_df=calculate_YTD(A_DS_Quarter_Figures_df,'A',"DS")
+
+            A_DS_Final_df.to_excel(writer,
+                            sheet_name='DS_YTD_Information')  
+
+            #######################################################################################################################
+            #Forecast Preparation
+            #Joining Forecast and Actual 
+            sorted_df=create_forecast_prep_df(F_DS_Final_df,A_DS_Final_df,'DS')
+
+            output=calculate_forecast(sorted_df,type='OM',target=0.03)
+            output.to_excel(writer,
+                            sheet_name='DS_Forecast_OM') 
+
+            output=calculate_forecast(sorted_df,type='GM',target=0.09)
+            output.to_excel(writer,
+                            sheet_name='DS_Forecast_GM') 
+
+            ###################################################################\
+            #For manufacturer side 
+            #Forecast 
+
+            # #This one no need once we standardize the inputs 
+            F_MF_df = F_MF_df.rename(columns={"OP expenses":"OP_expenses"})
+
+            #df merge with policy
+            F_MF_Policy_df =  F_MF_df.merge(SKU_list, left_on='Item', right_on='SKU', how='left')
+
+
+            #Calculate sales, gp, op 
+            F_MF_Policy_df=calculate_sales_gp_op_fcost(F_MF_Policy_df ,'F','MF')
+            #print(F_MF_Policy_df)
+
+            #Calculate Quarterly Figures and Change all the namings with a total infornt 
+            F_MF_Quarter_Figures_df=calculate_quartery_figures(F_MF_Policy_df,'F','MF')
+
+            #Calculate the volume and SKU Level GP Margin and OP Margin 
+            F_MF_Final_df =  F_MF_Policy_df.merge(F_MF_Quarter_Figures_df, left_on='Quarter', right_on='Quarter', how='left')
+            F_MF_Final_df=calculate_volume_gpm_opm(F_MF_Final_df ,'F','MF')
+
+            #F_MF_Final_df.to_csv('MF_final_F.csv')
+            F_MF_Final_df.to_excel(writer,
+                            sheet_name='MF_Forecast_Information')
+
+            #################################################################################
+            #For actual 
+
+            A_MF_Policy_df =  A_MF_df.merge(SKU_list, left_on='Item', right_on='SKU', how='left')
+            #print(A_DS_Policy_df)
+            #
+            A_MF_Policy_df = calculate_sales_gp_op_fcost(A_MF_Policy_df ,'A','MF')
+
+            A_MF_Quarter_Figures_df=calculate_quartery_figures(A_MF_Policy_df,'A','MF')
+
+            #Until here is the same for forecast and actual #Can summarise into one function 
+            #Only for the concatenating quarter part is only for actual 
+
+            #print(A_MF_Quarter_Figures_df['BU_A_MF_FullCost_Total'])
+
+            A_MF_Final_df=calculate_YTD(A_MF_Quarter_Figures_df,'A',"MF")
+
+            #A_MF_Final_df.to_csv('test.csv')
+            A_MF_Final_df.to_excel(writer,
+                            sheet_name='MF_YTD_Information')
+
+            #######################################################################################################################
+            # #Forecast Preparation
+            # #Joining Forecast and Actual 
+            sorted_df=create_forecast_prep_df(F_MF_Final_df,A_MF_Final_df,'MF')
+            writer.close()
+
+
             st.write("Data calculatedd...")
+            st.dataframe(sorted_df)
+
             st.subheader('Downloads:')
-            generate_excel_download_link(df)
+
+            file_path='data/Output.xlsx'
+            with open(file_path, 'rb') as my_file:
+                st.download_button(label = '📥 Download Current Result', data = my_file, file_name = 'filename.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            
 
     else:
         st.markdown('Please go to the previous tab to upload a file first')
