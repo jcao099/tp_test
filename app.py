@@ -1,6 +1,6 @@
-import streamlit as st  # pip install streamlit
+import streamlit as st  # pip install streamlit #streamlit==1.22.0
 import pandas as pd  # pip install pandas
-import plotly.express as px  # pip install plotly-express
+import plotly.express as px  # pip install plotly-express   plotly==5.14.1
 import base64  # Standard Python Module
 from io import StringIO, BytesIO  # Standard Python Module
 from streamlit_option_menu import option_menu
@@ -10,13 +10,15 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from predict_cost import predict
+import openpyxl
 
 #switch_page("New page name")
-
+#print(openpyxl.__version__)
 def generate_excel_download_link(df):
     # Credit Excel: https://discuss.streamlit.io/t/how-to-add-a-download-excel-csv-function-to-a-button/4474/5
     towrite = BytesIO()
-    df.to_excel(towrite, encoding="utf-8", index=False, header=True)  # write to BytesIO buffer
+    #df.to_excel(towrite, encoding="utf-8", index=False, header=True)  # write to BytesIO buffer
+    df.to_excel(towrite, index=False, header=True)
     towrite.seek(0)  # reset pointer
     b64 = base64.b64encode(towrite.read()).decode()
     href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="data_download.xlsx">Download Excel File</a>'
@@ -70,7 +72,7 @@ if selected == "Upload and view Data":
         #     st.session_state.clean = True
 
     if use_mock:
-        df = pd.read_excel('data/Cleaned_Data_for_Engine.xlsx', engine='openpyxl')
+        df = pd.read_excel('data/Cleaned_Data_for_Engine.xlsx')
         st.session_state.df = df
         st.markdown('Below is the mock data')
         
