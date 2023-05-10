@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from predict_cost import predict
 import openpyxl
-
+import pyodbc
 from calculation import * 
 from algorithm import * 
 
