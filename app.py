@@ -11,16 +11,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from predict_cost import predict
 import openpyxl
+import pyodbc
 from calculation import * 
 from algorithm import * 
-import pyodbc
-
-
-
-
-
-
-
 
 # Declare Variables   
 file_name="Data\\Cleaned_Data_for_Engine.xlsx"
@@ -31,7 +24,6 @@ F_MF_sheet_name="Manufacture_P&L Forecast"
 A_MF_sheet_name="Manufacture_Actual"
 extraordinary_cost=0 
 writer = pd.ExcelWriter("Data\\Output.xlsx", engine='openpyxl')
-
 
 
 
@@ -72,7 +64,7 @@ st.set_page_config(page_title='TP project')
 
 with st.sidebar:
     selected = option_menu(
-        menu_title = None, options = ["Upload and view Data","TP adjustments","test connecting SQL","Machine learning for fun"],
+        menu_title = None, options = ["Upload and view Data","TP adjustments","Machine learning for fun"],
         #orientation = "horizontal"
         )
 
@@ -328,7 +320,8 @@ if selected == "TP adjustments":
 
             st.subheader('Downloads:')
 
-            file_path='data/Output.xlsx'
+            #file_path='data/Output.xlsx'
+            file_path = "Data\\Output.xlsx"
             with open(file_path, 'rb') as my_file:
                 st.download_button(label = '📥 Download Current Result', data = my_file, file_name = 'filename.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             
@@ -355,19 +348,5 @@ if selected == "Machine learning for fun":
     if st.button('Predict Gross Profit'):
         cost = predict(np.array([[qty_invoiced, price, extended_price, ext_price_usd,custom_total_usd,unit_cost,ext_cost]]))
         st.text(cost[0])
-
-if selected == "test connecting SQL":
-
-    server = 'SEZMCRHOSDWV005,14330'
-    database = '2PromptCustom'
-    username = 'gts'
-    password = 'doyouloveGTS1029!)@('
-    cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password+';Encrypt = Mandatory'+';TrustServerCertificate=yes')
-    cursor = cnxn.cursor()
-    if st.button('Connect with DB now and show 10 rows of ECI data'):
-        query = 'select top (10) * from  [2PromptCustom].[dbo].[PWC_ECI]'
-        x = pd.io.sql.read_sql(query,cnxn)
-        st.dataframe(x)
-
-#data = pd.read_excel('data/IPL_Data.xlsx')
+    #data = pd.read_excel('data/IPL_Data.xlsx')
 #['Qty Invoiced', 'Price','Extended Price', 'Ext Price USD', 'Custom Total USD', 'Unit Cost', 'Ext Cost']
