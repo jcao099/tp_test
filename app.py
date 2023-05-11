@@ -141,6 +141,8 @@ if selected == "Upload and view Data":
         
         st.markdown('---')
         st.dataframe(df)
+        st.button('Click here to clean the data')
+        
 
 
         groupby_column = st.selectbox(
